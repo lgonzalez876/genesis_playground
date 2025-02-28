@@ -29,3 +29,5 @@ adhoc/
 !config_example.json
 logs
 wandb/
+
+genesis_playground/results/
