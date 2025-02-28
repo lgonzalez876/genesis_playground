@@ -77,6 +77,20 @@ def keyboard_control_policy(obs: torch.Tensor) -> torch.Tensor:
 
     return obs
 
+def apply_fixed_cmd(obs: torch.Tensor, fixed_cmd: dict) -> torch.Tensor:
+    """
+    Apply a fixed command to the robot.
+    """
+    x_cmd = fixed_cmd["x"]
+    y_cmd = fixed_cmd["y"]
+    yaw_cmd = fixed_cmd["yaw"]
+
+    obs[:, 6] = x_cmd
+    obs[:, 7] = y_cmd
+    obs[:, 8] = yaw_cmd
+
+    return obs
+
 def deg2rad(deg):
     return deg * np.pi / 180
 
@@ -96,10 +110,13 @@ def run_sim(env, policy, obs, use_keyboard=False):
         if use_keyboard:
             handle_pygame_events()
             obs = keyboard_control_policy(obs)
+        else:
+            fixed_cmd = {"x": 1.0, "y": 0.0, "yaw": 0.0}
+            obs = apply_fixed_cmd(obs, fixed_cmd)
         
         actions = policy(obs)
 
-        obs, _, rews, dones, infos = env.step(actions)
+        obs, rews, dones, infos = env.step(actions)
         timesteps += 1
         if use_keyboard and screen is not None:
             screen.fill((0, 0, 0))
@@ -119,10 +136,11 @@ def main():
     parser.add_argument("--device", type=str, default="mps")
     parser.add_argument("--keyboard_control", action='store_true',
                         help="Enable manual keyboard control, overriding policy.")
+    parser.add_argument("--log_dir", type=str, default="results")
     args = parser.parse_args()
 
     gs.init()
-    log_dir = f"logs/{args.exp_name}"
+    log_dir = f"{args.log_dir}/{args.exp_name}"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
         open(f"{log_dir}/cfgs.pkl", "rb")
     )
