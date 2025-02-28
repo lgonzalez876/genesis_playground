@@ -243,11 +243,21 @@ class ZbotEnv:
         self.last_actions[:] = self.actions[:]
         self.last_dof_vel[:] = self.dof_vel[:]
         self.total_steps += self.num_envs
+        
+        # during training rsl_rl expects the critic observations to be 
+        # returned in this format
+        self.extras["observations"] = {"critic": self.obs_buf}
 
-        return self.obs_buf, None, self.rew_buf, self.reset_buf, self.extras
+        return self.obs_buf, self.rew_buf, self.reset_buf, self.extras
 
     def get_observations(self):
-        return self.obs_buf
+        # The latest rsl_rl expects seperate observation vectors for our policy and 
+        # our critic. For now, I'm just returning the same observation vector for both.
+
+        # This means that when we try to train a minimal policy, we can exclude certain
+        # observations from our policy, but still give them to the critic defining our 
+        # value function target. This will be interesting to leverage
+        return self.obs_buf, {"observations": {"critic": self.obs_buf}}
 
     def get_privileged_observations(self):
         return None
@@ -341,6 +351,10 @@ class ZbotEnv:
         return self.obs_buf, None
 
     # ------------ reward functions----------------
+
+    # Maybe there is room to experiement with different reward functions? We can modify
+    # terms of the reward function or add our own pretty easily here
+
     def _reward_tracking_lin_vel(self):
         # Tracking of linear velocity commands (xy axes)
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)

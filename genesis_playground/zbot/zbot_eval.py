@@ -145,8 +145,13 @@ def main():
     obs, _ = env.reset()
 
     with torch.no_grad():
-        if torch.backends.mps.is_available():
+        # I made us always take this branch to enable rendering the sim on MacOs, which 
+        # requires running the sim in a separate thread. 
+        # Not sure what effect this would have on other platforms.
+        if True:
             gs.tools.run_in_another_thread(run_sim, args=(env, policy, obs, args.keyboard_control))
+            if args.show_viewer:
+                env.scene.viewer.start()
         else:
             run_sim(env, policy, obs, args.keyboard_control)
         

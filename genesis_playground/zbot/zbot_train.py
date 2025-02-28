@@ -19,7 +19,15 @@ import genesis as gs
 
 
 def get_train_cfg(exp_name, max_iterations):
+    
+    # I think the genesis_playground was used to an older version of rsl_rl
+    # i had to modify the cfg a little to get the latest rsl_rl version to work
 
+    # most of these changes are moving existing config to other places in the dict,
+    # and adding "class_name" which are just labels. 
+    # I did add "empirical_normalization": False becuase the rsl_rl library requires it in 
+    # the config, and having it off seems like the intended behavior for this training script. 
+    # Not sure what it does, maybe we can leverage it in the future.
     train_cfg_dict = {
         "algorithm": {
             "clip_param": 0.2,
@@ -34,6 +42,7 @@ def get_train_cfg(exp_name, max_iterations):
             "schedule": "adaptive",
             "use_clipped_value_loss": True,
             "value_loss_coef": 1.0,
+            "class_name": "PPO",
         },
         "init_member_classes": {},
         "policy": {
@@ -41,6 +50,7 @@ def get_train_cfg(exp_name, max_iterations):
             "actor_hidden_dims": [512, 256, 128],
             "critic_hidden_dims": [512, 256, 128],
             "init_noise_std": 1.0,
+            "class_name": "ActorCritic",
         },
         "runner": {
             "algorithm_class_name": "PPO",
@@ -56,10 +66,12 @@ def get_train_cfg(exp_name, max_iterations):
             "resume_path": None,
             "run_name": "",
             "runner_class_name": "OnPolicyRunner",
-            "save_interval": 100,
         },
         "runner_class_name": "OnPolicyRunner",
         "seed": 1,
+        "num_steps_per_env": 48,
+        "save_interval": 100,
+        "empirical_normalization": False
     }
 
     return train_cfg_dict
@@ -182,11 +194,12 @@ def main():
     parser.add_argument("--wandb_entity", type=str, default=None)
     parser.add_argument("--use_wandb", type=bool, default=False)
     parser.add_argument("--from_checkpoint", type=bool, default=False)
+    parser.add_argument("--log_dir", type=str, default="logs")
     args = parser.parse_args()
     
     gs.init(logging_level="warning")
 
-    log_dir = f"logs/{args.exp_name}"
+    log_dir = f"{args.log_dir}/{args.exp_name}"
     env_cfg, obs_cfg, reward_cfg, command_cfg = get_cfgs()
     train_cfg = get_train_cfg(args.exp_name, args.max_iterations)
 
